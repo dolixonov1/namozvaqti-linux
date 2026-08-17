@@ -47,14 +47,18 @@ def _escape_applescript(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def _notify_macos(title: str, message: str):
+def _notify_macos(title: str, message: str, silent: bool = False):
     # osascript's "display notification" has no --icon/--app-name/--urgency
     # equivalent to notify-send; it just shows up under whatever process ran
-    # osascript.
+    # osascript. "sound name" with no argument plays the user's default
+    # notification sound (System Settings > Notifications) instead of a
+    # bundled custom wav.
     script = (
         f'display notification "{_escape_applescript(message)}" '
         f'with title "{_escape_applescript(title)}"'
     )
+    if not silent:
+        script += ' sound name "default"'
     subprocess.run(["osascript", "-e", script], check=False)
 
 
@@ -107,16 +111,18 @@ def notify(
         if IS_MACOS:
             # no .title(): titles are already localized/cased by the caller,
             # and .title() mangles uz/ru text ("o'chiq" -> "O'Chiq")
-            _notify_macos(title, message)
+            _notify_macos(title, message, silent=silent)
         else:
             _notify_linux(title, message, urgency, icon, app_name, expire_time)
     except Exception as e:
         print(f"[Notification] Failed to send notification: {e}")
 
-    if silent:
+    if silent or IS_MACOS:
+        # macOS: "sound name" on the notification itself already played the
+        # user's system-default sound — no separate custom wav on top of it.
         return
 
-    # Play sound (fire-and-forget)
+    # Play sound (fire-and-forget) — Linux only, via the bundled wav
     try:
         _play_sound(sound or DEFAULT_SOUND, volume=volume)
     except Exception as e:
