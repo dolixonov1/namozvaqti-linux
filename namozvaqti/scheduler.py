@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import time
 from datetime import datetime
 
@@ -7,6 +8,12 @@ from namozvaqti.service import get_next_prayer_resilient
 
 
 def send_waybar_signal():
+    # Waybar (and the RTMIN+8 signal convention) is Linux/Wayland-only; there's
+    # nothing to refresh on macOS, so skip the call instead of shelling out to a
+    # pkill that can never match anything.
+    if not sys.platform.startswith("linux"):
+        return
+
     try:
         subprocess.run(["pkill", "-RTMIN+8", "waybar"], check=False)
     except Exception as e:
