@@ -348,6 +348,26 @@ To stop/remove:
 launchctl bootout gui/$(id -u)/com.namozvaqti.scheduler
 ```
 
+### 6. Settings (xbar dropdown / config files)
+
+The xbar dropdown has a settings section; every row just writes a plain-text
+file under `~/.config/namozvaqti/`, so the same settings also work on Linux
+(Waybar/Polybar read the language too) or can be set by hand:
+
+| Setting | File | Values | Default |
+|---|---|---|---|
+| Language (UI + prayer names) | `lang` | `uz` / `ru` / `en` | `en` |
+| City (all UZ regional centers) | `city` | `tashkent`, `namangan`, `andijan`, … see `namozvaqti/cities.py` | `namangan` |
+| Pre-prayer reminder | `prealert` | minutes before the prayer, `0` = off | `10` |
+| Mute (banner only, no adhan) | `mute` | `0` / `1` | `0` |
+
+Both the scheduler and the bar re-read these on every cycle — no restarts
+needed. The per-day cache is kept per city (`~/.cache/namozvaqti/<city>/`).
+
+The dropdown also shows the Hijri date, the qibla bearing (computed offline),
+and a 7-day schedule submenu. During Ramadan the menu bar counts down to
+iftar/suhoor under their own labels instead of Maghrib/Fajr.
+
 ---
 
 ## ✍️ Author

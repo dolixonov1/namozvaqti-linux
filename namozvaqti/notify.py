@@ -72,8 +72,8 @@ def _notify_linux(
         f"--urgency={urgency}",
         f"--expire-time={expire_time}",
         f"--icon={icon or DEFAULT_ICON}",
-        title.title(),
-        message.title(),
+        title,
+        message,
     ]
     subprocess.run(cmd, check=False)
 
@@ -87,6 +87,7 @@ def notify(
     icon: Path | str | None = None,
     app_name: str = "Prayer Times  ",
     expire_time: int = 0,
+    silent: bool = False,
 ):
     """
     Show a desktop notification with sound.
@@ -100,14 +101,20 @@ def notify(
         icon: Icon name or path (default: None = system default; Linux only)
         app_name: Application name shown in notification (Linux only)
         expire_time: Milliseconds before auto-dismiss (0 = never; Linux only)
+        silent: Skip the sound (banner only) — used for pre-alerts and mute mode
     """
     try:
         if IS_MACOS:
-            _notify_macos(title.title(), message.title())
+            # no .title(): titles are already localized/cased by the caller,
+            # and .title() mangles uz/ru text ("o'chiq" -> "O'Chiq")
+            _notify_macos(title, message)
         else:
             _notify_linux(title, message, urgency, icon, app_name, expire_time)
     except Exception as e:
         print(f"[Notification] Failed to send notification: {e}")
+
+    if silent:
+        return
 
     # Play sound (fire-and-forget)
     try:
