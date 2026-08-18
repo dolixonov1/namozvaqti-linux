@@ -72,7 +72,11 @@ def rebuild_for_date(day_data: dict, date: datetime) -> dict:
     """
     key = date.strftime("%Y-%m-%d")
     return {
-        name: {"time": p["time"], "timestamp": build_timestamp(key, p["time"])}
+        name: (
+            p  # "_"-prefixed metadata (hijri date etc.) — copy through as-is
+            if name.startswith("_")
+            else {"time": p["time"], "timestamp": build_timestamp(key, p["time"])}
+        )
         for name, p in day_data.items()
     }
 

@@ -253,6 +253,123 @@ pw-play assets/prayer-notification.wav
 
 ---
 
+## 🍎 Running on macOS
+
+The fetch/cache/scheduler pipeline is plain Python (`requests` only), so it
+runs unmodified on macOS. `notify.py` and `scheduler.py`'s bar-signal call
+auto-detect the platform (`sys.platform`) and switch implementations — no
+config needed.
+
+| Piece                  | Linux                    | macOS                                    |
+| ----------------------- | ------------------------- | ----------------------------------------- |
+| Notifications            | `notify-send`              | `osascript -e 'display notification …'`   |
+| Sound                     | `pw-play` (PipeWire)        | `afplay`                                    |
+| Bar refresh signal      | `pkill -RTMIN+8 waybar`   | skipped (no Waybar on macOS)             |
+| Autostart               | systemd user service       | launchd agent                              |
+
+### 1. Install `uv`
+
+```bash
+brew install uv
+```
+
+`afplay` and `osascript` are already built into macOS — nothing else to
+install for notifications/sound.
+
+### 2. Clone & sync
+
+```bash
+git clone https://github.com/MuhammadAkbar007/namozvaqti-linux.git
+cd namozvaqti-linux
+uv sync
+```
+
+`uv` downloads its own Python 3.13 to satisfy `requires-python`, independent
+of whatever `python3` is already on your `PATH`.
+
+### 3. Test notifications & scheduler manually
+
+```bash
+uv run -m namozvaqti.scripts.test_notify   # should pop a notification + play sound
+uv run -m namozvaqti.scheduler             # runs the same event loop as on Linux
+```
+
+### 4. Menu bar integration (optional, via xbar)
+
+Polybar/Waybar don't exist on macOS. [xbar](https://xbarapp.com/) is the
+closest equivalent — it runs a script on an interval and shows its output in
+the menu bar. `namozvaqti/scripts/xbar_plugin.py` converts the same
+Waybar-style JSON (`namozvaqti/format.py`) into xbar's plain-text plugin
+format, so both bars stay driven by one source of truth.
+
+```bash
+brew install --cask xbar
+```
+
+Launch xbar once (it'll ask to create `~/Library/Application Support/xbar/plugins/`
+and prompt for Accessibility/notification permissions), then:
+
+```bash
+cp macos/namozvaqti.60s.sh "$HOME/Library/Application Support/xbar/plugins/"
+chmod +x "$HOME/Library/Application Support/xbar/plugins/namozvaqti.60s.sh"
+```
+
+Edit the two placeholders inside that copied file (project directory and
+`which uv`), then refresh xbar (menu bar icon → "Refresh All") — it re-runs
+the script every 60s (the `.60s.` in the filename), matching the Polybar
+self-heal interval from the README above.
+
+> The  /󰔟 glyphs come from a [Nerd Font](https://www.nerdfonts.com/); without
+> one installed they'll render as boxes/tofu in the menu bar. Install one
+> (e.g. `brew install --cask font-hack-nerd-font`) and set it as xbar's font
+> via a `| font=Hack Nerd Font` suffix on the title line in
+> `xbar_plugin.py` if you want the icons to show correctly — otherwise the
+> text is still fully readable without them.
+
+Without a bar, the scheduler alone still gives you notifications + sound at
+each prayer time.
+
+### 5. Autostart with launchd (instead of systemd)
+
+Use [`macos/com.namozvaqti.scheduler.plist`](macos/com.namozvaqti.scheduler.plist)
+in place of the systemd unit above — fill in the two absolute-path
+placeholders (project directory and `which uv`), then:
+
+```bash
+cp macos/com.namozvaqti.scheduler.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.namozvaqti.scheduler.plist
+launchctl kickstart -k gui/$(id -u)/com.namozvaqti.scheduler
+launchctl print gui/$(id -u)/com.namozvaqti.scheduler   # check status
+```
+
+To stop/remove:
+
+```bash
+launchctl bootout gui/$(id -u)/com.namozvaqti.scheduler
+```
+
+### 6. Settings (xbar dropdown / config files)
+
+The xbar dropdown has a settings section; every row just writes a plain-text
+file under `~/.config/namozvaqti/`, so the same settings also work on Linux
+(Waybar/Polybar read the language too) or can be set by hand:
+
+| Setting | File | Values | Default |
+|---|---|---|---|
+| Language (UI + prayer names) | `lang` | `uz` / `ru` / `en` | `en` |
+| City (all UZ regional centers) | `city` | `tashkent`, `namangan`, `andijan`, … see `namozvaqti/cities.py` | `namangan` |
+| Pre-prayer reminder | `prealert` | minutes before the prayer, `0` = off | `10` |
+| Mute (banner only, no adhan) | `mute` | `0` / `1` | `0` |
+
+Both the scheduler and the bar re-read these on every cycle — no restarts
+needed. The per-day cache is kept per city (`~/.cache/namozvaqti/<city>/`).
+
+The dropdown also shows the Hijri date, the qibla bearing (computed offline),
+and a 7-day schedule submenu. During Ramadan the menu bar counts down to
+iftar/suhoor under their own labels instead of Maghrib/Fajr.
+
+---
+
 ## ✍️ Author
 
 Created by [Akbar](https://github.com/MuhammadAkbar007).

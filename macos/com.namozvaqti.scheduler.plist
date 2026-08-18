@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS launchd equivalent of the systemd user service documented in the
+  README. Copy to ~/Library/LaunchAgents/com.namozvaqti.scheduler.plist and
+  fill in the two placeholders below:
+
+    /ABSOLUTE/PATH/TO/namozvaqti-linux   -> project directory (WorkingDirectory)
+    /ABSOLUTE/PATH/TO/uv                 -> `which uv` (e.g. /opt/homebrew/bin/uv)
+
+  Then:
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.namozvaqti.scheduler.plist
+    launchctl kickstart -k gui/$(id -u)/com.namozvaqti.scheduler
+    launchctl print gui/$(id -u)/com.namozvaqti.scheduler   # check status
+
+  To stop/remove:
+    launchctl bootout gui/$(id -u)/com.namozvaqti.scheduler
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.namozvaqti.scheduler</string>
+
+    <key>WorkingDirectory</key>
+    <string>/ABSOLUTE/PATH/TO/namozvaqti-linux</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/ABSOLUTE/PATH/TO/uv</string>
+        <string>run</string>
+        <string>-m</string>
+        <string>namozvaqti.scheduler</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/namozvaqti-scheduler.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/namozvaqti-scheduler.log</string>
+</dict>
+</plist>

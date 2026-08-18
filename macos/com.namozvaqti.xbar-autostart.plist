@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Launches the xbar.app menu-bar app at every login, as an alternative to
+  toggling xbar's own "Start at Login" switch by hand. Just opens the app;
+  xbar itself stays running independently afterwards (no KeepAlive needed
+  here — this agent's job is done once xbar is launched).
+
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.namozvaqti.xbar-autostart.plist
+    launchctl kickstart -k gui/$(id -u)/com.namozvaqti.xbar-autostart
+
+  To stop/remove:
+    launchctl bootout gui/$(id -u)/com.namozvaqti.xbar-autostart
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.namozvaqti.xbar-autostart</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/open</string>
+        <string>-a</string>
+        <string>xbar</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>

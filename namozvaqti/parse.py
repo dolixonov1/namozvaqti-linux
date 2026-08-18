@@ -46,6 +46,18 @@ def parse_month(data: list[dict]) -> dict:
         if "sunrise" in prayers:
             prayers["ishroq"] = _add_minutes(prayers["sunrise"], ISHROQ_OFFSET_MIN)
 
+        # hijri date rides along under "_"-prefixed keys, which the rest of the
+        # pipeline (transform/service/format) passes through untouched; month
+        # number 9 (Ramadan) also drives the iftar/suhoor labels in format.py.
+        hijri = day.get("date", {}).get("hijri") or {}
+        try:
+            prayers["_hijri"] = (
+                f'{hijri["day"]} {hijri["month"]["en"]} {hijri["year"]}'
+            )
+            prayers["_hijri_month"] = int(hijri["month"]["number"])
+        except (KeyError, TypeError, ValueError):
+            pass
+
         result[key] = prayers
 
     if not result:

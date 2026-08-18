@@ -17,12 +17,21 @@ def time_remaining(target_ts: int, now_ts: int):
     return f"{hours}h {minutes}m"
 
 
-def format_text(name, prayer, now_ts):
+def format_text(name, prayer, now_ts, translate=None, ramadan=False):
     remaining = time_remaining(prayer["timestamp"], now_ts)
-    return f"  {name.capitalize()} {prayer['time']} | 󰔟 {remaining}"  # 󰞌
+    t = translate or {}
+    label = t.get(name) or name.capitalize()
+    # Ramadan mode: the bar counts down to iftar (maghrib) / suhoor-end (fajr)
+    # under their own names instead of the plain prayer labels.
+    if ramadan:
+        if name == "maghrib":
+            label = t.get("iftar", "Iftar")
+        elif name == "fajr":
+            label = t.get("suhoor", "Suhoor")
+    return f"  {label} {prayer['time']} | 󰔟 {remaining}"  # 󰞌
 
 
-def format_tooltip(day_data):
+def format_tooltip(day_data, translate=None):
     # full list shown on click (Ishroq included when present)
     order = ["fajr", "sunrise", "ishroq", "dhuhr", "asr", "maghrib", "isha"]
 
@@ -31,12 +40,18 @@ def format_tooltip(day_data):
         prayer = day_data.get(name)
         if not prayer:
             continue
-        lines.append(f"{name.capitalize():<9} {prayer['time']}")
+        label = translate.get(name, name.capitalize()) if translate else name.capitalize()
+        lines.append(f"{label:<9} {prayer['time']}")
+
+    # hijri date (when the cached day carries it) heads the tooltip
+    hijri = day_data.get("_hijri")
+    if hijri:
+        lines.insert(0, f"☪ {hijri}")
 
     return "\n".join(lines)
 
 
-def build_waybar_output():
+def build_waybar_output(translate=None):
     from namozvaqti.service import (
         get_day,
         get_next_prayer,
@@ -51,10 +66,11 @@ def build_waybar_output():
     try:
         today_data = get_day(now)
         name, prayer = get_next_prayer(now)
+        ramadan = today_data.get("_hijri_month") == 9
         return json.dumps(
             {
-                "text": format_text(name, prayer, now_ts),
-                "tooltip": format_tooltip(today_data),
+                "text": format_text(name, prayer, now_ts, translate, ramadan),
+                "tooltip": format_tooltip(today_data, translate),
             }
         )
     except Exception as e:
@@ -73,10 +89,11 @@ def build_waybar_output():
         day_key, day_data = stale
         approx = rebuild_for_date(day_data, now)
         name, prayer = next_prayer_for_day(approx, now)
+        ramadan = day_data.get("_hijri_month") == 9
         return json.dumps(
             {
-                "text": f"{STALE_MARKER} {format_text(name, prayer, now_ts)}",
-                "tooltip": f"{format_tooltip(day_data)}\n{STALE_MARKER} {day_key}",
+                "text": f"{STALE_MARKER} {format_text(name, prayer, now_ts, translate, ramadan)}",
+                "tooltip": f"{format_tooltip(day_data, translate)}\n{STALE_MARKER} {day_key}",
             }
         )
 
